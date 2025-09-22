@@ -6,7 +6,8 @@ import { Suspense } from "react"
 
 export const Avatar=({...props})=>{
     const group = useRef()
-    const { nodes} = useGLTF('/models/Armature.glb')
+    // const { nodes} = useGLTF('/models/Armature.glb')
+    const { nodes} = useGLTF('/models/tmp_armature2.glb')
     const customization = useConfiguratorStore((state) => state.customization)
     // const { actions } = useAnimations(animations, group) 
     
@@ -20,7 +21,7 @@ export const Avatar=({...props})=>{
       <group ref={group} {...props} dispose={null}>
         <group name="Scene">
           <group name="Armature" rotation={[Math.PI / 2, 0, 0]} scale={0.01}>
-            <primitive object={nodes.mixamorigHips} />
+            <primitive object={nodes.Hips001} />
              {Object.keys(customization).map(
                 (key) => 
                     customization[key]?.asset?.url && (
