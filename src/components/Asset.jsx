@@ -8,11 +8,11 @@ export const Asset = ({url, skeleton}) => {
         const items = [];
         scene.traverse((child) => {
 
-            console.log(
-                child.name,
-                'isSkinned?', child.isSkinnedMesh,
-                'has skin attrs?', !!child.geometry?.attributes?.skinIndex
-              );
+            // console.log(
+            //     child.name,
+            //     'isSkinned?', child.isSkinnedMesh,
+            //     'has skin attrs?', !!child.geometry?.attributes?.skinIndex
+            //   );
               
             if (child.isMesh) {
                 items.push({
