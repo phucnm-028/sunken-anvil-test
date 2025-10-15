@@ -24,7 +24,7 @@ const AssetBox = () => {
                         onClick={() => setCurrentCategory(category)}
                         className = {`transition-colors duration-200 font-medium ${
                             currentCategory.name === category.name
-                            ? "text-indigo-500"
+                            ? "text-red-500"
                             : "text-gray-500 hover:text-gray-700"
                         }`} 
                         >
@@ -36,7 +36,11 @@ const AssetBox = () => {
                 {currentCategory?.assets.map((asset, index) => (
                     <button
                         key={index}
-                        onClick={() => changeAsset(currentCategory.name, asset)}
+                        onClick={() => {
+                            console.log("Asset clicked:", asset);
+                            console.log("Category:", currentCategory.name);
+                            changeAsset(currentCategory.name, asset);
+                        }}
                         className={`w-20 h-20 rounded-md overflow-hidden bg-gray-200 pointer-events-auto hover:opacity-100 transition-all border-2 duration-500
                             ${
                                 customization[currentCategory.name]?.asset?.id === asset.id
