@@ -9,14 +9,24 @@ const AssetBox = () => {
         fetchCategories, 
         setCurrentCategory, 
         changeAsset, 
-        customization} = 
+        customization,
+        currentPose,
+        setCurrentPose,
+        poses,
+        assetNamesByCategory} = 
     useConfiguratorStore();
 
     useEffect(() => {
         fetchCategories();
-    }, []);
+    }, [fetchCategories]);
+
+    if (!currentCategory) return null;
+    const isPoseCategory = (currentCategory?.name.toLowerCase() === "pose");
+    console.log("isPoseCategory", isPoseCategory);
+
     return (
         <div className="rounded-2xl bg-white drop-shadow-md p-6 gap-6 flex flex-col">
+            {/* category head */}
             <div className="flex items-center gap-6 pointer-events-auto">
                 {categories.map((category) => (
                     <button 
@@ -32,25 +42,40 @@ const AssetBox = () => {
                     </button>
                 ))}
             </div>
+
+            {/* assets thumbnails*/}
             <div className="flex gap-2 flex-wrap">
-                {currentCategory?.assets.map((asset, index) => (
-                    <button
-                        key={index}
-                        onClick={() => {
-                            console.log("Asset clicked:", asset);
-                            console.log("Category:", currentCategory.name);
-                            changeAsset(currentCategory.name, asset);
-                        }}
-                        className={`w-20 h-20 rounded-md overflow-hidden bg-gray-200 pointer-events-auto hover:opacity-100 transition-all border-2 duration-500
-                            ${
-                                customization[currentCategory.name]?.asset?.id === asset.id
-                                ? "border-indigo-500 opacity-100"
-                                : "opacity-80 border-transparent"
-                            }`}
-                    >
-                        <img src={pb.files.getURL(asset, asset.thumbnail)}/>
-                    </button>
-                ))}
+                {currentCategory?.assets.map((asset, index) => {
+                    const isSelected = isPoseCategory
+                    ? currentPose === asset.name 
+                    : customization[currentCategory.name]?.asset?.id === asset.id;
+                    console.log("UI: currentPose", currentPose);
+                    
+                    const handleClick = () => {
+                        if (isPoseCategory) {
+                            console.log("Changing pose");
+                            const poseNames = assetNamesByCategory?.[currentCategory.name] ?? poses;
+                            const nextPose = currentPose === asset.name ? null : asset.name;
+                            if (poseNames && poseNames.length && !poseNames.includes(asset.name)) {
+                                return;
+                            }
+                            console.log("new pose name", nextPose);
+                            setCurrentPose(nextPose);
+                        }
+                        changeAsset(currentCategory.name, asset);
+                    };
+
+                    return(
+                        <button
+                            key={index}
+                            onClick={handleClick}
+                            className={`w-20 h-20 rounded-md overflow-hidden bg-gray-200 pointer-events-auto hover:opacity-100 transition-all border-2 duration-500
+                                ${isSelected ? "border-indigo-500 opacity-100" : "opacity-80 border-transparent"}`}
+                        >
+                            <img src={pb.files.getURL(asset, asset.thumbnail)}/>
+                        </button>
+                    );
+                })}
             </div>
         </div>
     )
