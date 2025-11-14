@@ -1,12 +1,13 @@
 import { OrbitControls, Environment, Backdrop , Grid, Bounds} from "@react-three/drei"
 import { Avatar } from "./Avatar"
+import { useRef, useState, useEffect } from "react"
 // import { Backdrop } from "./Backdrop"
 
-function SceneGizmos() {
-    return (
-      <>
+// function SceneGizmos() {
+    // return (
+      // <>
         {/* 1 unit ≈ 1 meter */}
-        <Grid
+        {/* <Grid
           position={[0, 0, 0]}
           infiniteGrid
           cellSize={1}       // 1 m cells
@@ -15,24 +16,25 @@ function SceneGizmos() {
           sectionThickness={1}
           fadeDistance={40}
           fadeStrength={1}
-        />
+        /> */}
         {/* Axis at the origin: X red, Y green, Z blue */}
-        <axesHelper args={[1]} />
+        {/* <axesHelper args={[1]} /> */}
   
         {/* 1 m calibration cube sitting on the “floor” */}
-        <mesh position={[0.5, 0.5, 0.5]}>
+        {/* <mesh position={[0.5, 0.5, 0.5]}>
           <boxGeometry args={[1, 1, 1]} />
           <meshStandardMaterial wireframe />
-        </mesh>
-      </>
-    )
-  }  
+        </mesh> */}
+      // </>
+    // )
+  // }  
 
 export const Experience = () => {
+
     return (
     <>
     <OrbitControls
-        minPolarAngle={Math.PI / 4}
+        minPolarAngle={Math.PI / 3}
         maxPolarAngle={Math.PI / 2}
         minAzimuthAngle={-Math.PI}
         maxAzimuthAngle={Math.PI}
@@ -46,24 +48,22 @@ export const Experience = () => {
     {/* Key Light */}
     <directionalLight
         position={[5, 5, 5]}
-        intensity={2.2}
+        intensity={0.01}
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
         shadow-bias={-0.0001}
     />
-    {/* Fill Light */}
-     <directionalLight position={[-5, 5, 5]} intensity={0.7} />
-    {/* Back Lights */}
-    {/* <directionalLight position={[1, 0.1, -5]} intensity={3} color={"red"} />
-    <directionalLight position={[-1, 0.1, -5]} intensity={3} color={"blue"} /> */}
 
-    <Grid position={[0,0,0]} infiniteGrid cellSize={1} sectionSize={5} />
-    <axesHelper args={[1]} />
+    <directionalLight position={[1, 0.1, -5]} intensity={0.1} color={"red"} />
+    <directionalLight position={[-1, 0.1, -5]} intensity={0.1} color={"blue"} />
 
-    <Bounds fit clip margin={26}>
+    {/* <Grid position={[0,0,0]} infiniteGrid cellSize={1} sectionSize={5} /> */}
+    {/* <axesHelper args={[1]} /> */}
+
+    {/* <Bounds ref={boundsRef} clip> */}
         <Avatar />
-    </Bounds>
+    {/* </Bounds> */}
     
     </>
     )
