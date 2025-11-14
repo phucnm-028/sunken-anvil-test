@@ -31,7 +31,7 @@ export const Avatar=({...props})=>{
 
     // Docs for scene and nodes
     //https://github.khronos.org/glTF-Tutorials/gltfTutorial/gltfTutorial_003_MinimalGltfFile.html
-    const { nodes, scene, animations } = useGLTF('/models/template_271025_2pose.glb')
+    const { nodes, scene, animations } = useGLTF('/models/template_131125_4pose.glb')
     const customization = useConfiguratorStore((state) => state.customization)
 
     // Memoize body, skeleton, and hips when nodes and scene change
