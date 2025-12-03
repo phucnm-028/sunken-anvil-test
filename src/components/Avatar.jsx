@@ -27,7 +27,7 @@ export const Avatar=({...props})=>{
 
     // Docs for scene and nodes
     //https://github.khronos.org/glTF-Tutorials/gltfTutorial/gltfTutorial_003_MinimalGltfFile.html
-    const { nodes, scene, animations } = useGLTF('/models/drakona_F_211125_wip.glb')
+    const { nodes, scene, animations } = useGLTF('/models/template_271125_wip_drakona_F.glb')
     const customization = useConfiguratorStore((state) => state.customization)
 
     // extract meshes and get the first skeleton found.
@@ -88,13 +88,13 @@ export const Avatar=({...props})=>{
         <group 
           name="AvatarRoot"
           position={[0, 0, 0]}
-          scale={0.08}
+          scale={0.8}
         >
 
           {/* Skeleton root */}
           {skeletonRoot && <primitive object={skeletonRoot} />}
 
-          {/* Render ALL skinned meshes, unified on ONE skeleton*/}
+          {/* Render all skinnedMeshes on one skeleton*/}
           {meshes.map((mesh, i) => (
             <skinnedMesh
               key={i}
