@@ -1,7 +1,8 @@
 import {create} from "zustand"
-
-// import pocketbase to connect to pocketbase database
+import {createClient} from "@supabase/supabase-js"
 import PocketBase from 'pocketbase';
+
+export const USE_POCKETBASE = true;
 
 const POCKETBASE_URL = import.meta.env.VITE_POCKETBASE_URL;
 if (!POCKETBASE_URL) {
@@ -9,15 +10,34 @@ if (!POCKETBASE_URL) {
 }
 export const pb = new PocketBase(POCKETBASE_URL);
 
+// Supabase
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!USE_POCKETBASE && (!supabaseUrl || !supabaseAnonKey)) {
+  throw new Error("Missing Supabase environment variables");
+}
+export const sb = USE_POCKETBASE 
+  ? null 
+  : createClient(supabaseUrl, supabaseAnonKey);
+
 
 const fetchCategories = async (set) => {
-    const categories = await pb.collection('CustomizationGroups').getFullList({
-        sort: "+position",
-    });
-    const assets = await pb.collection('CustomizationAssets').getFullList({
-        sort: "-created"
-    });
-    
+    let categories;
+    let assets;
+
+    if (USE_POCKETBASE) {
+        console.log("Using PocketBase");
+        categories = await pb.collection('CustomizationGroups').getFullList({
+            sort: "+position",
+        });
+        assets = await pb.collection('CustomizationAssets').getFullList({
+            sort: "-created"
+        });
+    } else {
+        throw new Error("Supabase is not enabled");
+    }
+
     const customization = {};
     const assetNamesByCategory = {};
     let poseNames = [];
