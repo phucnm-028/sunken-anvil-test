@@ -15,6 +15,7 @@
     "@react-spring/three": "^10.0.1",
     "@react-three/drei": "^10.7.3",
     "@react-three/fiber": "^9.3.0",
+    "@supabase/supabase-js": "^2.90.1",
     "@tailwindcss/vite": "^4.1.12",
     "leva": "^0.10.0",
     "pocketbase": "^0.26.2",
