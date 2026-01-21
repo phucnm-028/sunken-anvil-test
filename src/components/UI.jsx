@@ -1,109 +1,163 @@
-import { useEffect } from "react";
-import { useConfiguratorStore, pb } from "../store";
+import { useConfiguratorStore } from "../store"
+import {
+  SpeciesSelector,
+  PoseSelector,
+  AllAssetsVertical,
+  NoProfileSelected,
+} from "./CategoryContent"
 
+// ============================================================================
+// MAIN CATEGORY NAVIGATION
+// ============================================================================
 
-const AssetBox = () => {
-    const {
-        categories, 
-        currentCategory, 
-        fetchCategories, 
-        setCurrentCategory, 
-        changeAsset, 
-        customization,
-        currentPose,
-        setCurrentPose,
-        poses,
-        assetNamesByCategory} = 
-    useConfiguratorStore();
+const MainCategoryNav = () => {
+  const { mainCategories, currentMainCategory, selectMainCategory, selectedProfile } = 
+    useConfiguratorStore()
 
-    useEffect(() => {
-        fetchCategories();
-    }, [fetchCategories]);
+  return (
+    <div className="rounded-2xl bg-white drop-shadow-md p-4">
+      <div className="flex flex-col gap-2 pointer-events-auto">
+        {mainCategories.map((category) => {
+          const isActive = currentMainCategory === category
+          
+          // Disable non-species categories if no profile selected
+          const requiresProfile = category !== 'species'
+          const isDisabled = requiresProfile && !selectedProfile
 
-    if (!currentCategory) return null;
-    const isPoseCategory = (currentCategory?.name.toLowerCase() === "pose");
-    console.log("isPoseCategory", isPoseCategory);
+          return (
+            <button
+              key={category}
+              onClick={() => !isDisabled && selectMainCategory(category)}
+              disabled={isDisabled}
+              className={`transition-colors duration-200 font-medium capitalize py-2 px-4 rounded-md text-left ${
+                isActive
+                  ? "bg-red-500 text-white"
+                  : isDisabled
+                  ? "text-gray-300 cursor-not-allowed"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              {category}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
-    return (
-        <div className="rounded-2xl bg-white drop-shadow-md p-6 gap-6 flex flex-col">
-            {/* category head */}
-            <div className="flex items-center gap-6 pointer-events-auto">
-                {categories.map((category) => (
-                    <button 
-                        key={category.id} 
-                        onClick={() => setCurrentCategory(category)}
-                        className = {`transition-colors duration-200 font-medium ${
-                            currentCategory.name === category.name
-                            ? "text-red-500"
-                            : "text-gray-500 hover:text-gray-700"
-                        }`} 
-                        >
-                            {category.name}
-                    </button>
-                ))}
-            </div>
-
-            {/* assets thumbnails*/}
-            <div className="flex gap-2 flex-wrap">
-                {currentCategory?.assets.map((asset, index) => {
-                    const isSelected = isPoseCategory
-                    ? currentPose === asset.name 
-                    : customization[currentCategory.name]?.asset?.id === asset.id;
-                    console.log("UI: currentPose", currentPose);
-                    
-                    const handleClick = () => {
-                        if (isPoseCategory) {
-                            console.log("Changing pose");
-                            const poseNames = assetNamesByCategory?.[currentCategory.name] ?? poses;
-                            const nextPose = currentPose === asset.name ? null : asset.name;
-                            if (poseNames && poseNames.length && !poseNames.includes(asset.name)) {
-                                return;
-                            }
-                            console.log("new pose name", nextPose);
-                            setCurrentPose(nextPose);
-                        }
-                        changeAsset(currentCategory.name, asset);
-                    };
-
-                    return(
-                        <button
-                            key={index}
-                            onClick={handleClick}
-                            className={`w-20 h-20 rounded-md overflow-hidden bg-gray-200 pointer-events-auto hover:opacity-100 transition-all border-2 duration-500
-                                ${isSelected ? "border-indigo-500 opacity-100" : "opacity-80 border-transparent"}`}
-                        >
-                            <img src={pb.files.getURL(asset, asset.thumbnail)}/>
-                        </button>
-                    );
-                })}
-            </div>
-        </div>
-    )
-};
+// ============================================================================
+// DOWNLOAD BUTTON
+// ============================================================================
 
 const DownloadButton = () => {
-    return(
-        <button className="rounded-lg bg-indigo-500 hover:bg-indigo-600 transition-colors duration-300 text-white font-medium px-4 py-3 pointer-events-auto">
-            Download
-        </button>
-    );
-};
+  const { selectedProfile } = useConfiguratorStore()
+
+  return (
+    <button
+      disabled={!selectedProfile}
+      className={`rounded-lg transition-colors duration-300 text-white font-medium px-4 py-3 pointer-events-auto ${
+        selectedProfile
+          ? "bg-indigo-500 hover:bg-indigo-600"
+          : "bg-gray-300 cursor-not-allowed"
+      }`}
+    >
+      Download
+    </button>
+  )
+}
+
+// ============================================================================
+// CATEGORY CONTENT RENDERER
+// ============================================================================
+
+const CategoryContentRenderer = () => {
+  const { 
+    currentMainCategory, 
+    selectedProfile, 
+  } = useConfiguratorStore()
+
+  // No category selected
+  if (!currentMainCategory) {
+    return null
+  }
+
+  // Species category
+  if (currentMainCategory === 'species') {
+    return <SpeciesSelector />
+  }
+
+  // Pose category
+  if (currentMainCategory === 'pose') {
+    if (!selectedProfile) {
+      return <NoProfileSelected />
+    }
+    return <PoseSelector />
+  }
+
+  // Asset categories (head, body, clothing, gear) - show all assets vertically
+  if (['head', 'body', 'clothing', 'gear'].includes(currentMainCategory)) {
+    if (!selectedProfile) {
+      return <NoProfileSelected />
+    }
+    return <AllAssetsVertical />
+  }
+
+  return null
+}
+
+// ============================================================================
+// MAIN UI COMPONENT
+// ============================================================================
 
 export const UI = () => {
-    return(
-        <main className="pointer-events-none fixed z-10 inset-0 p-10">
-            <div className="mx-auto h-full max-w-screen-xl w-full flex flex-col justify-between">
-                <div className="flex justify-between items-center">
-                    <a className="pointer-events-auto" href="/">
-                    <img className="w-20" src="images/b&b_logo.png"/>       
-                    </a>
-                    <DownloadButton/>
-                </div>
+  const { error, isLoading, clearError } = useConfiguratorStore()
 
-                <div className="flex flex-col gap-6">
-                    <AssetBox/>
-                </div>
+  return (
+    <main className="pointer-events-none fixed z-10 inset-0 p-10">
+      <div className="h-full w-full flex gap-6">
+        {/* Left Column - Logo & Main Categories */}
+        <div className="w-48 flex flex-col gap-4 overflow-y-auto">
+          {/* Logo at top */}
+          <a className="pointer-events-auto" href="/">
+            <img className="w-20" src="images/b&b_logo.png" alt="Blubber & Bits" />
+          </a>
+
+          {/* Error Message */}
+          {error && (
+            <div className="rounded-2xl bg-red-50 border border-red-200 drop-shadow-md p-3 pointer-events-auto">
+              <p className="text-red-700 text-xs">{error}</p>
+              <button
+                onClick={clearError}
+                className="text-red-500 hover:text-red-700 font-medium text-xs mt-2"
+              >
+                Dismiss
+              </button>
             </div>
-        </main>
-    )
+          )}
+
+          {/* Loading Indicator */}
+          {isLoading && (
+            <div className="rounded-2xl bg-blue-50 border border-blue-200 drop-shadow-md p-3 pointer-events-auto">
+              <p className="text-blue-700 text-xs">Loading...</p>
+            </div>
+          )}
+
+          {/* Main Category Navigation */}
+          <MainCategoryNav />
+        </div>
+
+        {/* Right Column - Content Area (single vertical column) */}
+        <div className="w-68 flex flex-col gap-4 overflow-y-auto">
+          {/* Download Button at top right */}
+          <div className="flex justify-end">
+            <DownloadButton />
+          </div>
+
+          {/* Category Content - Everything displays vertically */}
+          <CategoryContentRenderer />
+        </div>
+      </div>
+    </main>
+  )
 }

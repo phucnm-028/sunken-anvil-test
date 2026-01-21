@@ -1,133 +1,306 @@
 import { useRef, useMemo, useEffect, useState, Suspense } from "react"
 import { useGLTF, useAnimations } from "@react-three/drei"
 import { Asset } from "./Asset"
-import { useConfiguratorStore, pb } from "../store"
+import { useConfiguratorStore } from "../store"
 
-// Extract body for skinnedMesh, skeleton to skin assets and hips for armature root
-const extractAvatarElements = (scene) => {
-  const meshes = []
-  let skeleton = null
+// ============================================================================
+// BASE ASSET LOADER - Individual component to load each base part
+// ============================================================================
 
-  scene.traverse((child) => {
-    if (child.isSkinnedMesh) {
-      meshes.push(child)
-      // console.log('child.name', child.name)
-      // console.log('child.skeleton', child.skeleton)
-      // console.log('skeleton', skeleton)
-      if (!skeleton) skeleton = child.skeleton
+const BaseAssetLoader = ({ url, bodyGroup, onLoad }) => {
+  const { scene, animations } = useGLTF(url)
+
+  useEffect(() => {
+    if (scene) {
+      onLoad(bodyGroup, scene, animations)
     }
-  })
-  return {meshes, skeleton}
+  }, [scene, animations, bodyGroup, onLoad])
+
+  return null // This component doesn't render anything
 }
 
-// Export Avatar component, to be used in Experience comp
-export const Avatar=({...props})=>{
+// ============================================================================
+// AVATAR COMPONENT - Renders character with modular base parts + equipment
+// ============================================================================
 
-    const group = useRef()
+export const Avatar = ({ scale = 0.01, ...props }) => {
+  const group = useRef()
 
-    // Docs for scene and nodes
-    //https://github.khronos.org/glTF-Tutorials/gltfTutorial/gltfTutorial_003_MinimalGltfFile.html
-    const { nodes, scene, animations } = useGLTF('/models/template_271125_wip_drakona_F.glb')
-    const customization = useConfiguratorStore((state) => state.customization)
+  // Get state from store
+  const {
+    selectedProfile,
+    baseAssets,
+    equippedAssets,
+    currentPose,
+    poses,
+  } = useConfiguratorStore()
 
-    // extract meshes and get the first skeleton found.
-    // NOTE: Assuming in the hierarchy the armature is the first child in the scene.
-    // TODO: need to add check that armature is the frist child.
-    const { meshes, skeleton } = useMemo(() => {
-      return extractAvatarElements(scene)
-    }, [scene])
+  // Track which base assets have loaded
+  const [loadedBases, setLoadedBases] = useState({
+    head: null,
+    torso: null,
+    left_arm: null,
+    right_arm: null,
+    legs: null,
+  })
 
-    // Caching the skeleton.
-    const skeletonRoot = useMemo(() => {
-      if (!skeleton) return null
-      return skeleton.bones[0]        // actual root bone
-    }, [skeleton])
+  // Template skeleton state
+  const [templateSkeleton, setTemplateSkeleton] = useState(null)
+  const [templateBonesMap, setTemplateBonesMap] = useState(null)
+  const [skeletonRoot, setSkeletonRoot] = useState(null)
 
-    // extract actions, each action a pose from NLA tracks
-    const { mixer, clips } = useAnimations(animations, skeletonRoot)
-    const currentPose = useConfiguratorStore((state) => state.currentPose)
+  // Animation state
+  const [animations, setAnimations] = useState([])
 
-    // Create a state to hold the actual actions (bc useAnimations doesn't create them automatically)
-    const [actions, setActions] = useState({})
+  // ============================================================================
+  // HANDLE BASE ASSET LOADING
+  // ============================================================================
 
-    // Create actions and return animation mixer, clips and skeleton root
-    useEffect(() => {
-      if (!mixer || !clips?.length || !skeletonRoot) return
+  // Callback when a base asset loads
+  const handleBaseAssetLoad = useMemo(
+    () => (bodyGroup, scene, anims) => {
+      setLoadedBases((prev) => ({
+        ...prev,
+        [bodyGroup]: scene,
+      }))
 
-      // object to hold actions
-      const created = {}
-      clips.forEach((clip) => {
-        created[clip.name] = mixer.clipAction(clip, skeletonRoot)
+      // Extract skeleton from first loaded asset (if not already extracted)
+      setTemplateSkeleton((prevSkeleton) => {
+        if (prevSkeleton) return prevSkeleton // Already have skeleton
+
+        let skeleton = null
+        scene.traverse((child) => {
+          if (child.isSkinnedMesh && child.skeleton && !skeleton) {
+            skeleton = child.skeleton
+
+            // Create bones map for joint-order remapping
+            const bonesMap = new Map()
+            skeleton.bones.forEach((bone) => {
+              bonesMap.set(bone.name, bone)
+            })
+            setTemplateBonesMap(bonesMap)
+
+            // Set skeleton root (first bone in hierarchy)
+            if (skeleton.bones.length > 0) {
+              setSkeletonRoot(skeleton.bones[0])
+            }
+
+            // Store animations for pose system
+            setAnimations(anims || [])
+          }
+        })
+
+        return skeleton
       })
-      setActions(created)
+    },
+    []
+  )
 
-      // debuggin
-      // if (typeof window !== "undefined") {
-      //   window.actions = created
-      //   window.clips = clips
-      //   window.skeletonRoot = skeletonRoot
-      // }
-    }, [mixer, clips, skeletonRoot])
+  // Reset when profile changes
+  useEffect(() => {
+    if (!selectedProfile) {
+      setLoadedBases({
+        head: null,
+        torso: null,
+        left_arm: null,
+        right_arm: null,
+        legs: null,
+      })
+      setTemplateSkeleton(null)
+      setTemplateBonesMap(null)
+      setSkeletonRoot(null)
+      setAnimations([])
+    }
+  }, [selectedProfile])
 
+  // ============================================================================
+  // POSE/ANIMATION SYSTEM
+  // ============================================================================
 
-    // Play pose.
-    useEffect(() => {
-      if (!actions || Object.keys(actions).length === 0) return
+  // Set up animation mixer and actions
+  const { mixer, clips } = useAnimations(animations, skeletonRoot)
+  const [actions, setActions] = useState({})
 
-      // hold actions to ensure only one action at a time
-      Object.values(actions).forEach((a) => a.stop())
-      // play the current pose
-      if (currentPose && actions[currentPose]) {
-        actions[currentPose].reset().play()
+  // Create actions from animation clips
+  useEffect(() => {
+    if (!mixer || !clips?.length || !skeletonRoot) return
+
+    const created = {}
+    clips.forEach((clip) => {
+      created[clip.name] = mixer.clipAction(clip, skeletonRoot)
+    })
+    setActions(created)
+
+    // Cleanup
+    return () => {
+      Object.values(created).forEach((action) => action.stop())
+    }
+  }, [mixer, clips, skeletonRoot])
+
+  // Play selected pose
+  useEffect(() => {
+    if (!actions || Object.keys(actions).length === 0) return
+
+    // Stop all actions
+    Object.values(actions).forEach((action) => action.stop())
+
+    // Play current pose if selected
+    if (currentPose && poses.length > 0) {
+      // Find pose object to get its slug/name
+      const poseObj = poses.find((p) => p.id === currentPose)
+      const poseName = poseObj?.slug || poseObj?.display_name
+
+      if (poseName && actions[poseName]) {
+        actions[poseName].reset().play()
       }
-    }, [actions, currentPose])
+    }
+  }, [actions, currentPose, poses])
+
+  // ============================================================================
+  // RENDER BASE ASSETS
+  // ============================================================================
+
+  const renderBaseAssets = useMemo(() => {
+    if (!templateSkeleton || !templateBonesMap) return null
+
+    const bodyGroups = ['head', 'torso', 'left_arm', 'right_arm', 'legs']
+    
+    return bodyGroups.map((bodyGroup) => {
+      const scene = loadedBases[bodyGroup]
+      if (!scene) return null
+
+      const meshes = []
+      scene.traverse((child) => {
+        if (child.isSkinnedMesh) {
+          meshes.push({
+            geometry: child.geometry,
+            material: child.material,
+            morphTargetDictionary: child.morphTargetDictionary,
+            morphTargetInfluences: child.morphTargetInfluences,
+          })
+        }
+      })
+
+      return meshes.map((mesh, idx) => (
+        <skinnedMesh
+          key={`${bodyGroup}-${idx}`}
+          geometry={mesh.geometry}
+          material={mesh.material}
+          skeleton={templateSkeleton}
+          morphTargetDictionary={mesh.morphTargetDictionary}
+          morphTargetInfluences={mesh.morphTargetInfluences}
+          castShadow
+          receiveShadow
+        />
+      ))
+    })
+  }, [loadedBases, templateSkeleton, templateBonesMap])
+
+  // ============================================================================
+  // RENDER EQUIPPED ASSETS
+  // ============================================================================
+
+  const renderEquippedAssets = useMemo(() => {
+    if (!templateBonesMap || !equippedAssets) return null
+
+    const bodyGroups = ['head', 'torso', 'left_arm', 'right_arm', 'legs']
+
+    return bodyGroups.map((bodyGroup) => {
+      const items = equippedAssets[bodyGroup] || []
+      
+      return items.map((asset) => {
+        if (!asset?.file_url) return null
+
+        return (
+          <Suspense key={asset.id} fallback={null}>
+            <Asset
+              url={asset.file_url}
+              templateBones={templateBonesMap}
+              skeleton={templateSkeleton}
+            />
+          </Suspense>
+        )
+      })
+    })
+  }, [equippedAssets, templateBonesMap, templateSkeleton])
+
+  // ============================================================================
+  // RENDER
+  // ============================================================================
+
+  // Don't render anything if no profile selected
+  if (!selectedProfile) {
+    return null
+  }
 
   return (
     <group ref={group} {...props} dispose={null}>
-      <group name="Scene">
-        <group 
-          name="AvatarRoot"
-          position={[0, 0, 0]}
-          scale={0.8}
-        >
+      {/* Hidden loaders for base assets */}
+      {baseAssets.head?.file_url && (
+        <Suspense fallback={null}>
+          <BaseAssetLoader
+            url={baseAssets.head.file_url}
+            bodyGroup="head"
+            onLoad={handleBaseAssetLoad}
+          />
+        </Suspense>
+      )}
+      {baseAssets.torso?.file_url && (
+        <Suspense fallback={null}>
+          <BaseAssetLoader
+            url={baseAssets.torso.file_url}
+            bodyGroup="torso"
+            onLoad={handleBaseAssetLoad}
+          />
+        </Suspense>
+      )}
+      {baseAssets.left_arm?.file_url && (
+        <Suspense fallback={null}>
+          <BaseAssetLoader
+            url={baseAssets.left_arm.file_url}
+            bodyGroup="left_arm"
+            onLoad={handleBaseAssetLoad}
+          />
+        </Suspense>
+      )}
+      {baseAssets.right_arm?.file_url && (
+        <Suspense fallback={null}>
+          <BaseAssetLoader
+            url={baseAssets.right_arm.file_url}
+            bodyGroup="right_arm"
+            onLoad={handleBaseAssetLoad}
+          />
+        </Suspense>
+      )}
+      {baseAssets.legs?.file_url && (
+        <Suspense fallback={null}>
+          <BaseAssetLoader
+            url={baseAssets.legs.file_url}
+            bodyGroup="legs"
+            onLoad={handleBaseAssetLoad}
+          />
+        </Suspense>
+      )}
 
-          {/* Skeleton root */}
-          {skeletonRoot && <primitive object={skeletonRoot} />}
+      {/* Only render character if skeleton is ready */}
+      {templateSkeleton && skeletonRoot && (
+        <group name="Scene">
+          <group 
+            name="AvatarRoot"
+            position={[0, -0.2, 0]}
+            scale={scale}
+          >
+            {/* Skeleton root */}
+            <primitive object={skeletonRoot} />
 
-          {/* Render all skinnedMeshes on one skeleton*/}
-          {meshes.map((mesh, i) => (
-            <skinnedMesh
-              key={i}
-              geometry={mesh.geometry}
-              material={mesh.material}
-              skeleton={skeleton}     // unified skeleton
-              castShadow
-              receiveShadow
-            />
-          ))}
+            {/* Render base assets (5 body parts) */}
+            {renderBaseAssets}
 
-          {/* customization assets (e.g. clothes, etc...) */}
-          {Object.keys(customization).map((key) => {
-            const file =
-              customization[key]?.asset &&
-              pb.files.getURL(
-                customization[key].asset,
-                customization[key].asset.url
-              )
-
-            return file ? (
-              <Suspense key={customization[key].asset.id}>
-                <Asset
-                  categoryName={key}
-                  url={file}
-                  skeleton={skeleton}   
-                />
-              </Suspense>
-            ) : null
-          })}
-
+            {/* Render equipped assets (equipment) */}
+            {renderEquippedAssets}
+          </group>
         </group>
-      </group>
+      )}
     </group>
   )
 }
