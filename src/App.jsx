@@ -9,7 +9,7 @@ function App() {
         <UI />
         <Canvas
             camera={{
-                position: [-1, -1, 5],
+                position: [-2, -2, 5],
                 fov: 45
             }}
         >
