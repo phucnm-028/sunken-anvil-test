@@ -1,5 +1,5 @@
 import { useGLTF } from "@react-three/drei"
-import { useMemo } from "react"
+import { useMemo, useEffect, useRef } from "react"
 import { Skeleton } from "three"
 
 /**
@@ -16,8 +16,15 @@ import { Skeleton } from "three"
  */
 export const Asset = ({ url, templateBones, skeleton }) => {
   const { scene } = useGLTF(url)
+
+  // Track created skeletons for cleanup on unmount
+  const createdSkeletonsRef = useRef([])
   
   const remappedMeshes = useMemo(() => {
+
+   // Dispose any previously created skeletons before computing new ones
+   createdSkeletonsRef.current.forEach(s => s.dispose())
+   createdSkeletonsRef.current = []  
     if (!templateBones) {
       // Fallback: no remapping (will likely break with animation)
       console.warn(`Asset "${url}": No templateBones provided, skipping joint-order remapping`)
@@ -54,9 +61,10 @@ export const Asset = ({ url, templateBones, skeleton }) => {
           return templateBone
         })
         
-        // Create new skeleton with remapped bones but ORIGINAL inverses
+       // Create new skeleton with remapped bones but ORIGINAL inverses
         // Inverses must stay in part's order because they match part's bind pose
         const remappedSkeleton = new Skeleton(remappedBones, partBoneInverses)
+        createdSkeletonsRef.current.push(remappedSkeleton)
         
         meshes.push({
           geometry: child.geometry,
@@ -71,11 +79,19 @@ export const Asset = ({ url, templateBones, skeleton }) => {
     return meshes
   }, [scene, templateBones, skeleton, url])
   
+  // Cleanup: dispose created skeletons when this Asset unmounts
+  useEffect(() => {
+    return () => {
+      createdSkeletonsRef.current.forEach(s => s.dispose())
+      createdSkeletonsRef.current = []
+    }
+  }, [])
   return (
     <>
       {remappedMeshes.map((mesh, index) => (
         <skinnedMesh
           key={`${url}-${index}`}
+          frustumCulled={false}
           geometry={mesh.geometry}
           material={mesh.material}
           skeleton={mesh.skeleton}

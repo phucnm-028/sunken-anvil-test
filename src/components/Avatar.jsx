@@ -203,29 +203,28 @@ export const Avatar = ({ scale = 0.01, ...props }) => {
   // RENDER EQUIPPED ASSETS
   // ============================================================================
 
-  const renderEquippedAssets = useMemo(() => {
-    if (!templateBonesMap || !equippedAssets) return null
+  const equippedItems = useMemo(() => {
+    if (!equippedAssets) return []
 
     const bodyGroups = ['head', 'torso', 'left_arm', 'right_arm', 'legs']
+    const items = []
 
-    return bodyGroups.map((bodyGroup) => {
-      const items = equippedAssets[bodyGroup] || []
-      
-      return items.map((asset) => {
-        if (!asset?.file_url) return null
-
-        return (
-          <Suspense key={asset.id} fallback={null}>
-            <Asset
-              url={asset.file_url}
-              templateBones={templateBonesMap}
-              skeleton={templateSkeleton}
-            />
-          </Suspense>
-        )
+    bodyGroups.forEach((bodyGroup) => {
+      const groupItems = equippedAssets[bodyGroup] || []
+      groupItems.forEach((asset) => {
+        if (asset?.file_url) {
+          items.push({
+            // Composite key: bodyGroup + asset.id ensures uniqueness even if
+            // the same asset UUID could theoretically appear on different groups.
+            key: `${bodyGroup}--${asset.id}`,
+            asset,
+          })
+        }
       })
     })
-  }, [equippedAssets, templateBonesMap, templateSkeleton])
+
+    return items
+  }, [equippedAssets])
 
   // ============================================================================
   // RENDER
@@ -285,8 +284,8 @@ export const Avatar = ({ scale = 0.01, ...props }) => {
         </Suspense>
       )}
 
-      {/* Only render character if skeleton is ready */}
-      {templateSkeleton && skeletonRoot && (
+     {/* Only render character if skeleton is ready */}
+     {templateSkeleton && skeletonRoot && (
         <group name="Scene">
           <group 
             name="AvatarRoot"
@@ -299,8 +298,16 @@ export const Avatar = ({ scale = 0.01, ...props }) => {
             {/* Render base assets (5 body parts) */}
             {renderBaseAssets}
 
-            {/* Render equipped assets (equipment) */}
-            {renderEquippedAssets}
+            {/* Render equipped assets (equipment) — flat list for clean reconciliation */}
+            {templateBonesMap && equippedItems.map(({ key, asset }) => (
+              <Suspense key={key} fallback={null}>
+                <Asset
+                  url={asset.file_url}
+                  templateBones={templateBonesMap}
+                  skeleton={templateSkeleton}
+                />
+              </Suspense>
+            ))}
           </group>
         </group>
       )}
