@@ -50,22 +50,22 @@ const MainCategoryNav = () => {
 // DOWNLOAD BUTTON
 // ============================================================================
 
-const DownloadButton = () => {
-  const { selectedProfile } = useConfiguratorStore()
+// const DownloadButton = () => {
+//   const { selectedProfile } = useConfiguratorStore()
 
-  return (
-    <button
-      disabled={!selectedProfile}
-      className={`rounded-lg transition-colors duration-300 text-white font-medium px-4 py-3 pointer-events-auto ${
-        selectedProfile
-          ? "bg-indigo-500 hover:bg-indigo-600"
-          : "bg-gray-300 cursor-not-allowed"
-      }`}
-    >
-      Download
-    </button>
-  )
-}
+//   return (
+//     <button
+//       disabled={!selectedProfile}
+//       className={`rounded-lg transition-colors duration-300 text-white font-medium px-4 py-3 pointer-events-auto ${
+//         selectedProfile
+//           ? "bg-indigo-500 hover:bg-indigo-600"
+//           : "bg-gray-300 cursor-not-allowed"
+//       }`}
+//     >
+//       Download
+//     </button>
+//   )
+// }
 
 // ============================================================================
 // CATEGORY CONTENT RENDERER
@@ -150,9 +150,9 @@ export const UI = () => {
         {/* Right Column - Content Area (single vertical column) */}
         <div className="w-68 flex flex-col gap-4 overflow-y-auto pointer-events-auto">
           {/* Download Button at top right */}
-          <div className="flex justify-end">
+          {/* <div className="flex justify-end">
             <DownloadButton />
-          </div>
+          </div> */}
 
           {/* Category Content - Everything displays vertically */}
           <CategoryContentRenderer />
