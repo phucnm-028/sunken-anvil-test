@@ -228,53 +228,79 @@ export async function getAssetById(assetId) {
  * @param {Object} profileDetails - Profile object with rig_class, thickness, species_id, male
  * @returns {Promise<Array>} Array of compatible asset objects
  */
-export async function getCompatibleAssets(slotId, profileDetails) {
-  try {
-    // First get the slot to know which asset_group it targets
-    const slot = await getAssetSlotById(slotId)
+// export async function getCompatibleAssets(slotId, profileDetails) {
+//   try {
+//     // First get the slot to know which asset_group it targets
+//     const slot = await getAssetSlotById(slotId)
     
-    // Get all assets for this slot with their fit_rules
-    const { data: assets, error } = await supabase
+//     // Get all assets for this slot with their fit_rules
+//     const { data: assets, error } = await supabase
+//       .from('assets')
+//       .select(`
+//         *,
+//         fit_rules (
+//           target_group,
+//           rig_class,
+//           thickness,
+//           species_id,
+//           male
+//         )
+//       `)
+//       .eq('slot_id', slotId)
+//       .eq('is_published', true)
+
+//     if (error) throw error
+
+//     // Filter assets based on fit_rules
+//     // An asset is compatible if it has at least one fit_rule that matches the profile
+//     const compatibleAssets = (assets || []).filter(asset => {
+//       // If no fit_rules, asset is compatible with everything
+//       if (!asset.fit_rules || asset.fit_rules.length === 0) {
+//         return true
+//       }
+
+//       // Check if any fit_rule matches the profile
+//       return asset.fit_rules.some(rule => {
+//         // NULL in fit_rule means "wildcard" - matches anything
+//         const rigClassMatch = rule.rig_class === null || rule.rig_class === profileDetails.rig_class
+//         const thicknessMatch = rule.thickness === null || rule.thickness === profileDetails.thickness
+//         const speciesMatch = rule.species_id === null || rule.species_id === profileDetails.species_id
+//         const genderMatch = rule.male === null || rule.male === profileDetails.male
+
+//         // Asset is compatible if ALL conditions match
+//         return rigClassMatch && thicknessMatch && speciesMatch && genderMatch
+//       })
+//     })
+
+//     return compatibleAssets
+//   } catch (error) {
+//     console.error('Error fetching compatible assets:', error)
+//     throw error
+//   }
+// }
+
+// SIMPLIFIED for Kickstarter — no fit_rules filtering
+export async function getCompatibleAssets(slotId, profileDetails, armorClassId = null) {
+  try {
+    let query = supabase
       .from('assets')
-      .select(`
-        *,
-        fit_rules (
-          target_group,
-          rig_class,
-          thickness,
-          species_id,
-          male
-        )
-      `)
+      .select('*, armor_classes(slug, display_name)')  // join for display
       .eq('slot_id', slotId)
       .eq('is_published', true)
+      .eq('rig_class', profileDetails.rig_class)
+      .eq('thickness', profileDetails.thickness)
+      .or(`species_id.is.null,species_id.eq.${profileDetails.species_id}`)
+      .order('display_name', { ascending: true })
 
+    if (armorClassId) {
+      query = query.eq('armor_class_id', armorClassId)
+    }
+
+    const { data, error } = await query
     if (error) throw error
-
-    // Filter assets based on fit_rules
-    // An asset is compatible if it has at least one fit_rule that matches the profile
-    const compatibleAssets = (assets || []).filter(asset => {
-      // If no fit_rules, asset is compatible with everything
-      if (!asset.fit_rules || asset.fit_rules.length === 0) {
-        return true
-      }
-
-      // Check if any fit_rule matches the profile
-      return asset.fit_rules.some(rule => {
-        // NULL in fit_rule means "wildcard" - matches anything
-        const rigClassMatch = rule.rig_class === null || rule.rig_class === profileDetails.rig_class
-        const thicknessMatch = rule.thickness === null || rule.thickness === profileDetails.thickness
-        const speciesMatch = rule.species_id === null || rule.species_id === profileDetails.species_id
-        const genderMatch = rule.male === null || rule.male === profileDetails.male
-
-        // Asset is compatible if ALL conditions match
-        return rigClassMatch && thicknessMatch && speciesMatch && genderMatch
-      })
-    })
-
-    return compatibleAssets
+    return data || []
   } catch (error) {
-    console.error('Error fetching compatible assets:', error)
+    console.error('Error fetching assets:', error)
     throw error
   }
 }

@@ -100,7 +100,9 @@ export const useConfiguratorStore = create((set, get) => ({
   selectSpecies: async (speciesId) => {
     set({ isLoading: true, error: null })
     try {
+      
       const profiles = await getProfilesBySpecies(speciesId)
+      
       set({
         selectedSpecies: speciesId,
         profiles,
@@ -117,8 +119,12 @@ export const useConfiguratorStore = create((set, get) => ({
    * This is the key action that initializes the character
    * @param {string} profileId - UUID of the profile
    */
+
+  _profileRequestId: 0,
+
   selectProfile: async (profileId) => {
-    set({ isLoading: true, error: null })
+    const requestId = get()._profileRequestId + 1
+    set({ _profileRequestId: requestId, isLoading: true, error: null })
     try {
       // Load profile details (for fit_rules filtering)
       const profileDetails = await getProfileById(profileId)
@@ -126,6 +132,9 @@ export const useConfiguratorStore = create((set, get) => ({
       // Load the 5 default base parts
       const baseAssets = await getProfileDefaultParts(profileId)
       
+      // If user clicked another profile before fetchin done then dont update
+      if (get()._profileRequestId !== requestId) return
+
       // Reset equipped assets when changing profile
       const emptyEquipped = {
         head: [],
@@ -277,18 +286,34 @@ export const useConfiguratorStore = create((set, get) => ({
 
   /**
    * Equip an asset (equipment) to a body group
-   * @param {string} bodyGroup - Body group ('head', 'torso', 'left_arm', 'right_arm', 'legs')
-   * @param {Object} asset - Asset object to equip
-   * @param {Object} slot - Asset slot object (to check selection_mode)
-   */
+  * 
+  * Arm-specific logic:
+  *   - Weapon-arm (gear on left_arm/right_arm): replaces arm armor + any
+  *     previous weapon-arm on THAT arm only. The other arm is untouched.
+  *   - Arm armor (clothing on left_arm/right_arm): replaces previous arm
+  *     armor AND clears any weapon-arm on that arm, since the weapon-arm
+  *     bakes in a specific armor class that no longer matches.
+  *   - Torso armor is fully independent — never affected by arm changes.
+  * 
+  * @param {string} bodyGroup - 'head' | 'torso' | 'left_arm' | 'right_arm' | 'legs'
+  * @param {Object} asset - Asset object to equip (from DB)
+  * @param {Object} slot - Asset slot object (has main_category, selection_mode)
+  */
   equipAsset: (bodyGroup, asset, slot) => {
     set((state) => {
       const currentEquipped = state.equippedAssets[bodyGroup] || []
-      
-      // Check if asset is already equipped
+
+      // Tag asset with slot metadata so we can identify it later
+      // (e.g. distinguish weapon-arms from arm armor in the same array)
+      const enrichedAsset = {
+        ...asset,
+        _mainCategory: slot?.main_category,
+        _slotId: slot?.id,
+      }
+
+      // ── Toggle off (clicking an already-equipped asset unequips it) ──
       const alreadyEquipped = currentEquipped.some(a => a.id === asset.id)
       if (alreadyEquipped) {
-        // Toggle off - unequip
         return {
           equippedAssets: {
             ...state.equippedAssets,
@@ -297,21 +322,59 @@ export const useConfiguratorStore = create((set, get) => ({
         }
       }
 
-      // Check selection mode
+      // ── Arm-specific: weapon-arm / armor class logic ──
+      const isArm = bodyGroup === 'left_arm' || bodyGroup === 'right_arm'
+
+      if (isArm) {
+        const isWeaponArm = slot?.main_category === 'gear'
+        const isArmArmor  = slot?.main_category === 'clothing'
+
+        if (isWeaponArm) {
+          // Weapon-arm is a full arm replacement mesh (arm + armor + weapon).
+          // Clear: previous arm armor (clothing) and any other weapon-arm (gear).
+          // Keep: accessories on other categories if they exist (e.g. multi-select rings).
+          const keepItems = currentEquipped.filter(
+            a => a._mainCategory !== 'clothing' && a._mainCategory !== 'gear'
+          )
+          return {
+            equippedAssets: {
+              ...state.equippedAssets,
+              [bodyGroup]: [...keepItems, enrichedAsset],
+            },
+          }
+        }
+
+        if (isArmArmor) {
+          // Switching armor class invalidates any equipped weapon-arm on this arm,
+          // because the weapon-arm bakes in the previous armor class mesh.
+          // Clear: previous arm armor (clothing) and any weapon-arm (gear).
+          // Keep: accessories on other categories.
+          const keepItems = currentEquipped.filter(
+            a => a._mainCategory !== 'clothing' && a._mainCategory !== 'gear'
+          )
+          return {
+            equippedAssets: {
+              ...state.equippedAssets,
+              [bodyGroup]: [...keepItems, enrichedAsset],
+            },
+          }
+        }
+      }
+
+      // ── Standard logic for everything else (torso, head, legs, arm accessories) ──
       if (slot?.selection_mode === 'multi') {
-        // Multi-select: add to array
         return {
           equippedAssets: {
             ...state.equippedAssets,
-            [bodyGroup]: [...currentEquipped, asset],
+            [bodyGroup]: [...currentEquipped, enrichedAsset],
           },
         }
       } else {
-        // Single-select: replace array with single item
+        // Single-select: replace entire array
         return {
           equippedAssets: {
             ...state.equippedAssets,
-            [bodyGroup]: [asset],
+            [bodyGroup]: [enrichedAsset],
           },
         }
       }

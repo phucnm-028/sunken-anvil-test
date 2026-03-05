@@ -1,5 +1,6 @@
 import { useRef, useMemo, useEffect, useState, Suspense } from "react"
-import { useGLTF, useAnimations } from "@react-three/drei"
+// TODO: Need to fix for poses - import { useAnimations } from "@react-three/drei"
+import { useGLTF } from "@react-three/drei"
 import { Asset } from "./Asset"
 import { useConfiguratorStore } from "../store"
 
@@ -49,8 +50,8 @@ export const Avatar = ({ scale = 0.01, ...props }) => {
   const [templateBonesMap, setTemplateBonesMap] = useState(null)
   const [skeletonRoot, setSkeletonRoot] = useState(null)
 
-  // Animation state
-  const [animations, setAnimations] = useState([])
+  // TODO: Need to fix for poses - Animation state
+  // const [animations, setAnimations] = useState([])
 
   // ============================================================================
   // HANDLE BASE ASSET LOADING
@@ -85,8 +86,8 @@ export const Avatar = ({ scale = 0.01, ...props }) => {
               setSkeletonRoot(skeleton.bones[0])
             }
 
-            // Store animations for pose system
-            setAnimations(anims || [])
+            // TODO: Need to store animations for pose system
+            // setAnimations(anims || [])
           }
         })
 
@@ -96,65 +97,67 @@ export const Avatar = ({ scale = 0.01, ...props }) => {
     []
   )
 
+  //NOTE: move profile reset to Experience.jsx to avoid re-rendering the avatar when the profile changes.
   // Reset when profile changes
-  useEffect(() => {
-    if (!selectedProfile) {
-      setLoadedBases({
-        head: null,
-        torso: null,
-        left_arm: null,
-        right_arm: null,
-        legs: null,
-      })
-      setTemplateSkeleton(null)
-      setTemplateBonesMap(null)
-      setSkeletonRoot(null)
-      setAnimations([])
-    }
-  }, [selectedProfile])
+//   useEffect(() => {
+//     // Always reset — whether clearing or switching profiles
+//     setLoadedBases({
+//       head: null,
+//       torso: null,
+//       left_arm: null,
+//       right_arm: null,
+//       legs: null,
+//     })
+//     setTemplateSkeleton(null)
+//     setTemplateBonesMap(null)
+//     setSkeletonRoot(null)
 
-  // ============================================================================
-  // POSE/ANIMATION SYSTEM
-  // ============================================================================
+//     // TODO: Need to reactivate for poses
+//     // setAnimations([])
+// }, [selectedProfile])
 
-  // Set up animation mixer and actions
-  const { mixer, clips } = useAnimations(animations, skeletonRoot)
-  const [actions, setActions] = useState({})
+  // // ============================================================================
+  // // TODO: Need to reactivate for poses - POSE/ANIMATION SYSTEM
+  // // ============================================================================
 
-  // Create actions from animation clips
-  useEffect(() => {
-    if (!mixer || !clips?.length || !skeletonRoot) return
+  // // Set up animation mixer and actions
+  // const { mixer, clips } = useAnimations(animations, skeletonRoot)
+  // const [actions, setActions] = useState({})
 
-    const created = {}
-    clips.forEach((clip) => {
-      created[clip.name] = mixer.clipAction(clip, skeletonRoot)
-    })
-    setActions(created)
+  // // Create actions from animation clips
+  // useEffect(() => {
+  //   if (!mixer || !clips?.length || !skeletonRoot) return
 
-    // Cleanup
-    return () => {
-      Object.values(created).forEach((action) => action.stop())
-    }
-  }, [mixer, clips, skeletonRoot])
+  //   const created = {}
+  //   clips.forEach((clip) => {
+  //     created[clip.name] = mixer.clipAction(clip, skeletonRoot)
+  //   })
+  //   setActions(created)
 
-  // Play selected pose
-  useEffect(() => {
-    if (!actions || Object.keys(actions).length === 0) return
+  //   // Cleanup
+  //   return () => {
+  //     Object.values(created).forEach((action) => action.stop())
+  //   }
+  // }, [mixer, clips, skeletonRoot])
 
-    // Stop all actions
-    Object.values(actions).forEach((action) => action.stop())
+  // // Play selected pose
+  // useEffect(() => {
+  //   if (!actions || Object.keys(actions).length === 0) return
 
-    // Play current pose if selected
-    if (currentPose && poses.length > 0) {
-      // Find pose object to get its slug/name
-      const poseObj = poses.find((p) => p.id === currentPose)
-      const poseName = poseObj?.slug || poseObj?.display_name
+  //   // Stop all actions
+  //   Object.values(actions).forEach((action) => action.stop())
 
-      if (poseName && actions[poseName]) {
-        actions[poseName].reset().play()
-      }
-    }
-  }, [actions, currentPose, poses])
+  //   // Play current pose if selected
+  //   if (currentPose && poses.length > 0) {
+  //     // Find pose object to get its slug/name
+  //     const poseObj = poses.find((p) => p.id === currentPose)
+  //     const poseName = poseObj?.slug || poseObj?.display_name
+
+  //     if (poseName && actions[poseName]) {
+  //       actions[poseName].reset().play()
+  //     }
+  //   }
+  // }, [actions, currentPose, poses])
 
   // ============================================================================
   // RENDER BASE ASSETS
@@ -287,7 +290,7 @@ export const Avatar = ({ scale = 0.01, ...props }) => {
         <group name="Scene">
           <group 
             name="AvatarRoot"
-            position={[0, -0.2, 0]}
+            position={[0, 0, 0]}
             scale={scale}
           >
             {/* Skeleton root */}

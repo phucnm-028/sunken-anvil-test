@@ -8,65 +8,92 @@ import { useConfiguratorStore } from "../store"
 export const SpeciesSelector = () => {
   const { 
     species,
+    selectedSpecies,
     profiles, 
     selectedProfile,
     selectProfile,
-    loadSpecies
+    selectSpecies,
   } = useConfiguratorStore()
 
-  // Load species if not already loaded
-  if (species.length === 0) {
-    loadSpecies()
-  }
-
-  // Combine male and female profiles into one array
   const allProfiles = [...profiles.male, ...profiles.female]
 
-  if (allProfiles.length === 0) {
-    return (
-      <div className="rounded-2xl bg-white drop-shadow-md p-6 max-w-2xl">
-        <p className="text-gray-500 text-sm">Loading profiles...</p>
-      </div>
-    )
-  }
-
   return (
-    <div className="rounded-2xl bg-white drop-shadow-md p-6 gap-6 flex flex-col max-w-2xl">
-      <div className="flex items-center justify-between">
-        {/* <h3 className="font-medium text-gray-700">Profiles</h3> */}
-        <span className="text-xs text-gray-500">{allProfiles.length} available</span>
+    <div className="flex flex-col gap-4">
+      {/* ── Species Grid ── */}
+      <div className="rounded-2xl bg-white drop-shadow-md p-6 gap-3 flex flex-col">
+        <h3 className="font-medium text-gray-700 text-sm">Species</h3>
+        <div className="flex gap-2 flex-wrap">
+          {species.map((sp) => {
+            const isSelected = selectedSpecies === sp.id
+            return (
+              <button
+                key={sp.id}
+                onClick={() => selectSpecies(sp.id)}
+                className={`w-20 h-20 rounded-md overflow-hidden bg-gray-200 pointer-events-auto 
+                  hover:opacity-100 transition-all border-2 duration-500 flex items-center justify-center ${
+                  isSelected
+                    ? "border-indigo-500 opacity-100"
+                    : "opacity-80 border-transparent"
+                }`}
+              >
+                {sp.thumbnail_url ? (
+                  <img 
+                    src={sp.thumbnail_url} 
+                    alt={sp.display_name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-xs font-medium text-gray-600 text-center px-1">
+                    {sp.display_name}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
-      <div className="flex gap-2 flex-wrap">
-        {allProfiles.map((profile) => {
-          const isSelected = selectedProfile === profile.id
-          const genderIcon = profile.male ? '♂' : '♀'
-          const genderColor = profile.male ? 'text-blue-600' : 'text-pink-600'
+      {/* ── Profiles Grid (after species is selected) ── */}
+      {selectedSpecies && allProfiles.length > 0 && (
+        <div className="rounded-2xl bg-white drop-shadow-md p-6 gap-3 flex flex-col">
+          <h3 className="font-medium text-gray-700 text-sm">Profiles</h3>
+          <div className="flex gap-2 flex-wrap">
+            {allProfiles.map((profile) => {
+              const isSelected = selectedProfile === profile.id
+              const genderIcon = profile.male ? '♂' : '♀'
+              const genderColor = profile.male ? 'text-blue-600' : 'text-pink-600'
 
-          return (
-            <button
-              key={profile.id}
-              onClick={() => selectProfile(profile.id)}
-              className={`w-20 h-20 rounded-md overflow-hidden bg-gray-200 pointer-events-auto hover:opacity-100 transition-all border-2 duration-500 relative ${
-                isSelected
-                  ? "border-indigo-500 opacity-100"
-                  : "opacity-80 border-transparent"
-              }`}
-            >
-              {profile.thumbnail_url && (
-                <img 
-                  src={profile.thumbnail_url} 
-                  alt={profile.display_name}
-                  className="w-full h-full object-cover"
-                />
-              )}
-              <span className={`absolute top-1 right-1 text-lg font-bold ${genderColor} drop-shadow-md`}>
-                {genderIcon}
-              </span>
-            </button>
-          )
-        })}
-      </div>
+              return (
+                <button
+                  key={profile.id}
+                  onClick={() => selectProfile(profile.id)}
+                  className={`w-20 h-20 rounded-md overflow-hidden bg-gray-200 pointer-events-auto 
+                    hover:opacity-100 transition-all border-2 duration-500 relative ${
+                    isSelected
+                      ? "border-indigo-500 opacity-100"
+                      : "opacity-80 border-transparent"
+                  }`}
+                >
+                  {profile.thumbnail_url ? (
+                    <img 
+                      src={profile.thumbnail_url} 
+                      alt={profile.display_name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-xs font-medium text-gray-600 text-center px-1">
+                      {profile.display_name}
+                    </span>
+                  )}
+                  <span className={`absolute top-1 right-1 text-lg font-bold ${genderColor} drop-shadow-md`}>
+                    {genderIcon}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -179,6 +206,21 @@ const SlotWithAssets = ({ slot }) => {
   const isBaseSlot = slot.is_base
   const assetGroup = slot.asset_group
 
+  // ── Derive the armor_class_id for weapon-arm filtering ──
+  // Only relevant when this slot is a weapon-arm slot (gear on an arm).
+  // Reads from the equipped armor on THIS specific arm (left or right).
+  const isWeaponArmSlot = 
+    slot.main_category === 'gear' 
+    && (assetGroup === 'left_arm' || assetGroup === 'right_arm')
+
+  // Get the armor_class_id from whatever arm armor is currently on this arm
+  const equippedOnThisArm = equippedAssets[assetGroup] || []
+  const currentArmorPiece = equippedOnThisArm.find(
+    a => a._mainCategory === 'clothing' && a.armor_class_id
+  )
+  // If no armor equipped, we'll look up 'bare' in the query
+  const currentArmorClassId = currentArmorPiece?.armor_class_id || null
+
   // Load assets for this slot
   useEffect(() => {
     const loadAssets = async () => {
@@ -186,15 +228,31 @@ const SlotWithAssets = ({ slot }) => {
       
       setLoading(true)
       try {
-        // Import the catalog functions
         const { getProfileById, getCompatibleAssets } = await import('./Catalog')
-        
-        // Get profile details
         const profile = await getProfileById(selectedProfile)
         
-        // Fetch compatible assets for this slot
-        const assets = await getCompatibleAssets(slot.id, profile)
+        // For weapon-arm slots, pass the armor class filter.
+        // If no armor is equipped (currentArmorClassId is null),
+        // look up the 'bare' armor class to filter by.
+        let armorClassId = null
+
+        if (isWeaponArmSlot) {
+          if (currentArmorClassId) {
+            armorClassId = currentArmorClassId
+          } else {
+            // No arm armor equipped — default to 'bare' weapon-arms.
+            // Query the armor_classes table for the bare ID.
+            const { supabase } = await import('./SupabaseClient')
+            const { data: bareClass } = await supabase
+              .from('armor_classes')
+              .select('id')
+              .eq('slug', 'bare')
+              .single()
+            armorClassId = bareClass?.id || null
+          }
+        }
         
+        const assets = await getCompatibleAssets(slot.id, profile, armorClassId)
         setSlotAssets(assets)
       } catch (error) {
         console.error('Failed to load assets for slot:', slot.id, error)
@@ -204,7 +262,8 @@ const SlotWithAssets = ({ slot }) => {
     }
     
     loadAssets()
-  }, [slot.id, selectedProfile])
+  }, [slot.id, selectedProfile, currentArmorClassId])
+  // ↑ Re-fetches when armor on THIS arm changes (armor_class_id changes)
 
   // Don't show section if loading or no assets
   if (loading || slotAssets.length === 0) {
@@ -222,7 +281,6 @@ const SlotWithAssets = ({ slot }) => {
 
       <div className="flex gap-2 flex-wrap">
         {slotAssets.map((asset) => {
-          // Check if this asset is selected
           let isSelected = false
           
           if (isBaseSlot) {

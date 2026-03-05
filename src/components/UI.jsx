@@ -117,7 +117,7 @@ export const UI = () => {
     <main className="pointer-events-none fixed z-10 inset-0 p-10">
       <div className="h-full w-full flex gap-6">
         {/* Left Column - Logo & Main Categories */}
-        <div className="w-48 flex flex-col gap-4 overflow-y-auto">
+        <div className="w-48 flex flex-col gap-4 overflow-y-auto pointer-events-auto">
           {/* Logo at top */}
           <a className="pointer-events-auto" href="/">
             <img className="w-20" src="images/b&b_logo.png" alt="Blubber & Bits" />
@@ -148,7 +148,7 @@ export const UI = () => {
         </div>
 
         {/* Right Column - Content Area (single vertical column) */}
-        <div className="w-68 flex flex-col gap-4 overflow-y-auto">
+        <div className="w-68 flex flex-col gap-4 overflow-y-auto pointer-events-auto">
           {/* Download Button at top right */}
           <div className="flex justify-end">
             <DownloadButton />
