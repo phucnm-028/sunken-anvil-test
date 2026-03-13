@@ -1,103 +1,146 @@
 import React, { useEffect } from "react"
 import { useConfiguratorStore } from "../store"
 
+
 // ============================================================================
 // SPECIES SELECTOR
 // ============================================================================
-
-export const SpeciesSelector = () => {
-  const { 
-    species,
-    selectedSpecies,
-    profiles, 
-    selectedProfile,
-    selectProfile,
-    selectSpecies,
-  } = useConfiguratorStore()
-
-  const allProfiles = [...profiles.male, ...profiles.female]
-
+ 
+// ── ProfileThumb ─────────────────────────────────────────────────────────────
+// Single male or female thumbnail cell inside a species row.
+ 
+const ProfileThumb = ({ profile, isMale, isSelected, onSelect }) => {
+  const genderIcon  = isMale ? "♂" : "♀"
+  const genderColor = isMale ? "text-blue-500" : "text-rose-400"
+  const genderLabel = isMale ? "Male" : "Female"
+ 
+  if (!profile) {
+    // Empty placeholder — keeps the grid aligned when one gender has no profile
+    return <div className="w-full aspect-square rounded-md bg-gray-50 border-2 border-transparent" />
+  }
+ 
   return (
-    <div className="flex flex-col gap-4">
-      {/* ── Species Grid ── */}
-      <div className="rounded-2xl bg-white drop-shadow-md p-6 gap-3 flex flex-col">
-        <h3 className="font-medium text-gray-700 text-sm">Species</h3>
-        <div className="flex gap-2 flex-wrap">
-          {species.map((sp) => {
-            const isSelected = selectedSpecies === sp.id
-            return (
-              <button
-                key={sp.id}
-                onClick={() => selectSpecies(sp.id)}
-                className={`w-20 h-20 rounded-md overflow-hidden bg-gray-200 pointer-events-auto 
-                  hover:opacity-100 transition-all border-2 duration-500 flex items-center justify-center ${
-                  isSelected
-                    ? "border-indigo-500 opacity-100"
-                    : "opacity-80 border-transparent"
-                }`}
-              >
-                {sp.thumbnail_url ? (
-                  <img 
-                    src={sp.thumbnail_url} 
-                    alt={sp.display_name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-xs font-medium text-gray-600 text-center px-1">
-                    {sp.display_name}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* ── Profiles Grid (after species is selected) ── */}
-      {selectedSpecies && allProfiles.length > 0 && (
-        <div className="rounded-2xl bg-white drop-shadow-md p-6 gap-3 flex flex-col">
-          <h3 className="font-medium text-gray-700 text-sm">Profiles</h3>
-          <div className="flex gap-2 flex-wrap">
-            {allProfiles.map((profile) => {
-              const isSelected = selectedProfile === profile.id
-              const genderIcon = profile.male ? '♂' : '♀'
-              const genderColor = profile.male ? 'text-blue-600' : 'text-pink-600'
-
-              return (
-                <button
-                  key={profile.id}
-                  onClick={() => selectProfile(profile.id)}
-                  className={`w-20 h-20 rounded-md overflow-hidden bg-gray-200 pointer-events-auto 
-                    hover:opacity-100 transition-all border-2 duration-500 relative ${
-                    isSelected
-                      ? "border-indigo-500 opacity-100"
-                      : "opacity-80 border-transparent"
-                  }`}
-                >
-                  {profile.thumbnail_url ? (
-                    <img 
-                      src={profile.thumbnail_url} 
-                      alt={profile.display_name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-xs font-medium text-gray-600 text-center px-1">
-                      {profile.display_name}
-                    </span>
-                  )}
-                  <span className={`absolute top-1 right-1 text-lg font-bold ${genderColor} drop-shadow-md`}>
-                    {genderIcon}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
+    <button
+      onClick={onSelect}
+      title={`${profile.display_name} — ${genderLabel}`}
+      className={`w-full aspect-square rounded-md overflow-hidden bg-gray-100 pointer-events-auto
+        transition-all border-2 duration-300 relative flex items-center justify-center ${
+        isSelected
+          ? "border-indigo-500 opacity-100"
+          : "opacity-70 border-transparent hover:opacity-90"
+      }`}
+    >
+      {profile.thumbnail_url ? (
+        <>
+          <img
+            src={profile.thumbnail_url}
+            alt={profile.display_name}
+            className="w-full h-full object-cover"
+          />
+          {/* Gender badge overlay — only when thumbnail present */}
+          <span className={`absolute top-1 right-1 text-sm font-bold ${genderColor} drop-shadow`}>
+            {genderIcon}
+          </span>
+        </>
+      ) : (
+        // No thumbnail — show name + gender symbol as text
+        <div className="flex flex-col items-center gap-0.5 px-1">
+          <span className={`text-lg font-bold leading-none ${genderColor}`}>{genderIcon}</span>
+          <span className="text-xs font-semibold text-gray-600 text-center leading-tight">
+            {profile.display_name}
+          </span>
         </div>
       )}
+    </button>
+  )
+}
+ 
+// ── SpeciesSelector ───────────────────────────────────────────────────────────
+ 
+export const SpeciesSelector = () => {
+  const {
+    species,
+    selectedProfile,
+    selectSpecies,
+    selectProfile,
+  } = useConfiguratorStore()
+ 
+  // Local map: speciesId → { male: Profile|null, female: Profile|null }
+  const [profileMap, setProfileMap] = React.useState({})
+ 
+  // Pre-fetch profiles for every species once the species list is available
+  useEffect(() => {
+    if (species.length === 0) return
+ 
+    const loadAll = async () => {
+      const { getProfilesBySpecies } = await import('./Catalog')
+      const entries = await Promise.all(
+        species.map(async (sp) => {
+          const grouped = await getProfilesBySpecies(sp.id)
+          return [
+            sp.id,
+            {
+              male:   grouped.male[0]   ?? null,
+              female: grouped.female[0] ?? null,
+            }
+          ]
+        })
+      )
+      setProfileMap(Object.fromEntries(entries))
+    }
+ 
+    loadAll()
+  }, [species])
+ 
+  const handleSelect = (speciesId, profile) => {
+    selectSpecies(speciesId)   // updates store.selectedSpecies + fetches full profile list
+    selectProfile(profile.id)  // updates store.selectedProfile + loads base assets
+  }
+ 
+  return (
+    <div className="rounded-2xl bg-white drop-shadow-md p-4 flex flex-col gap-2">
+      {species.map((sp) => {
+        const entry         = profileMap[sp.id]
+        const maleProfile   = entry?.male   ?? null
+        const femaleProfile = entry?.female ?? null
+ 
+        const rowActive =
+          (maleProfile   && selectedProfile === maleProfile.id) ||
+          (femaleProfile && selectedProfile === femaleProfile.id)
+ 
+        return (
+          <div key={sp.id} className={`flex flex-col gap-1 p-2 rounded-xl transition-colors duration-200 ${
+            rowActive ? "bg-indigo-50" : "hover:bg-gray-50"
+          }`}>
+            {/* Species name */}
+            <span className={`text-xs font-medium ${
+              rowActive ? "text-indigo-600" : "text-gray-500"
+            }`}>
+              {sp.display_name}
+            </span>
+ 
+            {/* Two thumbnails — fixed equal size */}
+            <div className="grid grid-cols-2 gap-2 w-full">
+              <ProfileThumb
+                profile={maleProfile}
+                isMale={true}
+                isSelected={selectedProfile === maleProfile?.id}
+                onSelect={() => maleProfile && handleSelect(sp.id, maleProfile)}
+              />
+              <ProfileThumb
+                profile={femaleProfile}
+                isMale={false}
+                isSelected={selectedProfile === femaleProfile?.id}
+                onSelect={() => femaleProfile && handleSelect(sp.id, femaleProfile)}
+              />
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
-
+ 
 // ============================================================================
 // POSE SELECTOR
 // ============================================================================
@@ -207,19 +250,24 @@ const SlotWithAssets = ({ slot }) => {
   const assetGroup = slot.asset_group
 
   // ── Derive the armor_class_id for weapon-arm filtering ──
-  // Only relevant when this slot is a weapon-arm slot (gear on an arm).
-  // Reads from the equipped armor on THIS specific arm (left or right).
   const isWeaponArmSlot = 
     slot.main_category === 'gear' 
     && (assetGroup === 'left_arm' || assetGroup === 'right_arm')
 
-  // Get the armor_class_id from whatever arm armor is currently on this arm
   const equippedOnThisArm = equippedAssets[assetGroup] || []
   const currentArmorPiece = equippedOnThisArm.find(
     a => a._mainCategory === 'clothing' && a.armor_class_id
   )
-  // If no armor equipped, we'll look up 'bare' in the query
   const currentArmorClassId = currentArmorPiece?.armor_class_id || null
+
+  // ── Derive species filter for legs equipment slots ──
+  // If this is a legs equipment slot, check what base legs are equipped.
+  // Shared legs (species_id = null) → show only shared leg armor
+  // Species-specific legs (e.g. Drakona) → show only that species' leg armor
+  const isLegsEquipmentSlot = !isBaseSlot && assetGroup === 'legs'
+  const baseLegsSpeciesId = isLegsEquipmentSlot
+    ? (baseAssets.legs?.species_id ?? null)  // null if shared, uuid if species-specific
+    : undefined  // undefined = not a legs slot, use default filtering
 
   // Load assets for this slot
   useEffect(() => {
@@ -231,17 +279,12 @@ const SlotWithAssets = ({ slot }) => {
         const { getProfileById, getCompatibleAssets } = await import('./Catalog')
         const profile = await getProfileById(selectedProfile)
         
-        // For weapon-arm slots, pass the armor class filter.
-        // If no armor is equipped (currentArmorClassId is null),
-        // look up the 'bare' armor class to filter by.
         let armorClassId = null
 
         if (isWeaponArmSlot) {
           if (currentArmorClassId) {
             armorClassId = currentArmorClassId
           } else {
-            // No arm armor equipped — default to 'bare' weapon-arms.
-            // Query the armor_classes table for the bare ID.
             const { supabase } = await import('./SupabaseClient')
             const { data: bareClass } = await supabase
               .from('armor_classes')
@@ -252,7 +295,26 @@ const SlotWithAssets = ({ slot }) => {
           }
         }
         
-        const assets = await getCompatibleAssets(slot.id, profile, armorClassId)
+        const assets = await getCompatibleAssets(slot.id, profile, armorClassId, baseLegsSpeciesId)
+
+        console.log(`[SlotWithAssets] slot="${slot.display_name}" (${slot.slug})`, {
+          assetGroup,
+          isLegsEquipmentSlot,
+          baseLegsSpeciesId,
+          armorClassId,
+          profile: {
+            rig_class: profile.rig_class,
+            thickness: profile.thickness,
+            species_id: profile.species_id,
+          },
+          results: assets.map(a => ({
+            sku: a.sku,
+            display_name: a.display_name,
+            species_id: a.species_id,
+            file_url: a.file_url,
+          })),
+        })
+        
         setSlotAssets(assets)
       } catch (error) {
         console.error('Failed to load assets for slot:', slot.id, error)
@@ -262,7 +324,7 @@ const SlotWithAssets = ({ slot }) => {
     }
     
     loadAssets()
-  }, [slot.id, selectedProfile, currentArmorClassId])
+  }, [slot.id, selectedProfile, currentArmorClassId, baseLegsSpeciesId])
   // ↑ Re-fetches when armor on THIS arm changes (armor_class_id changes)
 
   // Don't show section if loading or no assets

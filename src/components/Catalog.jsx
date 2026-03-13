@@ -280,7 +280,7 @@ export async function getAssetById(assetId) {
 // }
 
 // SIMPLIFIED for Kickstarter — no fit_rules filtering
-export async function getCompatibleAssets(slotId, profileDetails, armorClassId = null) {
+export async function getCompatibleAssets(slotId, profileDetails, armorClassId = null, legsSpeciesId = undefined) {
   try {
     let query = supabase
       .from('assets')
@@ -289,8 +289,23 @@ export async function getCompatibleAssets(slotId, profileDetails, armorClassId =
       .eq('is_published', true)
       .eq('rig_class', profileDetails.rig_class)
       .eq('thickness', profileDetails.thickness)
-      .or(`species_id.is.null,species_id.eq.${profileDetails.species_id}`)
-      .order('display_name', { ascending: true })
+
+      console.log(['getCompatibleAssets'], { 'slotId': slotId, 'armorClassId': armorClassId, 'legsSpeciesId': legsSpeciesId, 'rigClass': profileDetails.rig_class, 'thickness': profileDetails.thickness, 'speciesId': profileDetails.species_id })
+    // Legs equipment: filter by what base legs the user has equipped
+    // undefined = not a legs slot, use default profile-based filtering
+    // null = shared legs equipped, show only shared (species_id IS NULL) armor
+    // uuid = species-specific legs equipped, show only that species' armor
+    if (legsSpeciesId !== undefined) {
+      if (legsSpeciesId === null) {
+        query = query.is('species_id', null)
+      } else {
+        query = query.eq('species_id', legsSpeciesId)
+      }
+    } else {
+      query = query.or(`species_id.is.null,species_id.eq.${profileDetails.species_id}`)
+    }
+
+    query = query.order('display_name', { ascending: true })
 
     if (armorClassId) {
       query = query.eq('armor_class_id', armorClassId)
