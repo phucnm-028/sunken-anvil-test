@@ -156,7 +156,7 @@ const MobileDrawer = ({ isOpen, onClose }) => {
             ? "translate-y-0 pointer-events-auto"
             : "translate-y-full pointer-events-none"
         }`}
-        style={{ maxHeight: "65vh" }}
+        style={{ maxHeight: "35vh" }}
       >
         {/* Handle row */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
@@ -176,7 +176,7 @@ const MobileDrawer = ({ isOpen, onClose }) => {
         {/* Scrollable content — pb-14 clears the 56px tab bar */}
         <div
           className="overflow-y-auto px-4 pt-3 pb-14 pointer-events-auto"
-          style={{ maxHeight: "calc(65vh - 52px)" }}
+          style={{ maxHeight: "calc(35vh - 52px)" }}
         >
           <CategoryContentRenderer />
         </div>
