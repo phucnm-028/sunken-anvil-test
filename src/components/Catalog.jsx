@@ -123,7 +123,8 @@ export async function getProfileDefaultParts(profileId) {
  * @returns {Array<string>} Array of main category names
  */
 export function getMainCategories() {
-  return ['species', 'head', 'body', 'clothing', 'gear', 'pose']
+  // return ['species', 'head', 'body', 'clothing', 'gear', 'pose']
+  return ['species', 'body', 'clothing', 'gear']
 }
 
 // ============================================================================
