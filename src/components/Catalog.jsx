@@ -124,7 +124,7 @@ export async function getProfileDefaultParts(profileId) {
  */
 export function getMainCategories() {
   // return ['species', 'head', 'body', 'clothing', 'gear', 'pose']
-  return ['species', 'body', 'clothing', 'gear']
+  return ['species', 'clothing', 'gear']
 }
 
 // ============================================================================
