@@ -158,6 +158,20 @@ export const Avatar = ({ scale = 0.01, ...props }) => {
   //     }
   //   }
   // }, [actions, currentPose, poses])
+  
+  // ============================================================================
+  // WEAPON-ARM DETECTION — hide base naked arm when weapon-arm is equipped
+  // ============================================================================
+
+  const armsWithWeaponEquipped = useMemo(() => {
+    const result = { left_arm: false, right_arm: false }
+    for (const arm of ['left_arm', 'right_arm']) {
+      const items = equippedAssets[arm] || []
+      result[arm] = items.some(a => a._mainCategory === 'gear')
+    }
+    return result
+  }, [equippedAssets])
+
 
   // ============================================================================
   // RENDER BASE ASSETS
@@ -169,6 +183,9 @@ export const Avatar = ({ scale = 0.01, ...props }) => {
     const bodyGroups = ['head', 'torso', 'left_arm', 'right_arm', 'legs']
     
     return bodyGroups.map((bodyGroup) => {
+
+      if (armsWithWeaponEquipped[bodyGroup]) return null
+      
       const scene = loadedBases[bodyGroup]
       if (!scene) return null
 
@@ -197,7 +214,7 @@ export const Avatar = ({ scale = 0.01, ...props }) => {
         />
       ))
     })
-  }, [loadedBases, templateSkeleton, templateBonesMap])
+  }, [loadedBases, templateSkeleton, templateBonesMap, armsWithWeaponEquipped])
 
   // ============================================================================
   // RENDER EQUIPPED ASSETS

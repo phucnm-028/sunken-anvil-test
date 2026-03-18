@@ -250,15 +250,15 @@ const SlotWithAssets = ({ slot }) => {
   const assetGroup = slot.asset_group
 
   // ── Derive the armor_class_id for weapon-arm filtering ──
-  const isWeaponArmSlot = 
-    slot.main_category === 'gear' 
-    && (assetGroup === 'left_arm' || assetGroup === 'right_arm')
+  // const isWeaponArmSlot = 
+  //   slot.main_category === 'gear' 
+  //   && (assetGroup === 'left_arm' || assetGroup === 'right_arm')
 
-  const equippedOnThisArm = equippedAssets[assetGroup] || []
-  const currentArmorPiece = equippedOnThisArm.find(
-    a => a._mainCategory === 'clothing' && a.armor_class_id
-  )
-  const currentArmorClassId = currentArmorPiece?.armor_class_id || null
+  // const equippedOnThisArm = equippedAssets[assetGroup] || []
+  // const currentArmorPiece = equippedOnThisArm.find(
+  //   a => a._mainCategory === 'clothing' && a.armor_class_id
+  // )
+  // const currentArmorClassId = currentArmorPiece?.armor_class_id || null
 
   // ── Derive species filter for legs equipment slots ──
   // If this is a legs equipment slot, check what base legs are equipped.
@@ -279,29 +279,30 @@ const SlotWithAssets = ({ slot }) => {
         const { getProfileById, getCompatibleAssets } = await import('./Catalog')
         const profile = await getProfileById(selectedProfile)
         
-        let armorClassId = null
+        // let armorClassId = null
 
-        if (isWeaponArmSlot) {
-          if (currentArmorClassId) {
-            armorClassId = currentArmorClassId
-          } else {
-            const { supabase } = await import('./SupabaseClient')
-            const { data: bareClass } = await supabase
-              .from('armor_classes')
-              .select('id')
-              .eq('slug', 'bare')
-              .single()
-            armorClassId = bareClass?.id || null
-          }
-        }
+        // if (isWeaponArmSlot) {
+        //   if (currentArmorClassId) {
+        //     armorClassId = currentArmorClassId
+        //   } else {
+        //     const { supabase } = await import('./SupabaseClient')
+        //     const { data: bareClass } = await supabase
+        //       .from('armor_classes')
+        //       .select('id')
+        //       .eq('slug', 'bare')
+        //       .single()
+        //     armorClassId = bareClass?.id || null
+        //   }
+        // }
         
-        const assets = await getCompatibleAssets(slot.id, profile, armorClassId, baseLegsSpeciesId)
-
+        // const assets = await getCompatibleAssets(slot.id, profile, armorClassId, baseLegsSpeciesId)
+        
+        const assets = await getCompatibleAssets(slot.id, profile, null, baseLegsSpeciesId)
+        
         console.log(`[SlotWithAssets] slot="${slot.display_name}" (${slot.slug})`, {
           assetGroup,
           isLegsEquipmentSlot,
           baseLegsSpeciesId,
-          armorClassId,
           profile: {
             rig_class: profile.rig_class,
             thickness: profile.thickness,
@@ -324,7 +325,7 @@ const SlotWithAssets = ({ slot }) => {
     }
     
     loadAssets()
-  }, [slot.id, selectedProfile, currentArmorClassId, baseLegsSpeciesId])
+  }, [slot.id, selectedProfile, baseLegsSpeciesId])
   // ↑ Re-fetches when armor on THIS arm changes (armor_class_id changes)
 
   // Don't show section if loading or no assets

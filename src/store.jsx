@@ -286,15 +286,18 @@ export const useConfiguratorStore = create((set, get) => ({
 
   /**
    * Equip an asset (equipment) to a body group
-  * 
-  * Arm-specific logic:
-  *   - Weapon-arm (gear on left_arm/right_arm): replaces arm armor + any
-  *     previous weapon-arm on THAT arm only. The other arm is untouched.
-  *   - Arm armor (clothing on left_arm/right_arm): replaces previous arm
-  *     armor AND clears any weapon-arm on that arm, since the weapon-arm
-  *     bakes in a specific armor class that no longer matches.
-  *   - Torso armor is fully independent — never affected by arm changes.
-  * 
+   *
+   * Arm-specific logic (layered model):
+   *   - Weapon-arm (gear on left_arm/right_arm): a bare-arm + weapon mesh.
+   *     Replaces the base "naked arm" (Avatar hides it via equippedAssets check).
+   *     Clears any previous weapon-arm on THAT arm only.
+   *     KEEPS arm armor (clothing) — it layers on top independently.
+   *   - Arm armor (clothing on left_arm/right_arm): replaces previous arm
+   *     armor only. KEEPS any equipped weapon-arm — armor is independent.
+   *   - Toggling a weapon-arm off restores the base naked arm automatically
+   *     (Avatar re-shows the base mesh when no gear is in the array).
+   *   - Torso armor is fully independent — never affected by arm changes.
+   *
   * @param {string} bodyGroup - 'head' | 'torso' | 'left_arm' | 'right_arm' | 'legs'
   * @param {Object} asset - Asset object to equip (from DB)
   * @param {Object} slot - Asset slot object (has main_category, selection_mode)
@@ -330,11 +333,11 @@ export const useConfiguratorStore = create((set, get) => ({
         const isArmArmor  = slot?.main_category === 'clothing'
 
         if (isWeaponArm) {
-          // Weapon-arm is a full arm replacement mesh (arm + armor + weapon).
-          // Clear: previous arm armor (clothing) and any other weapon-arm (gear).
-          // Keep: accessories on other categories if they exist (e.g. multi-select rings).
+          // Bare arm + weapon. Replaces base naked arm (Avatar handles hiding).
+          // Clear: previous weapon-arm (gear) only.
+          // Keep: arm armor (clothing) + accessories — they layer on top.
           const keepItems = currentEquipped.filter(
-            a => a._mainCategory !== 'clothing' && a._mainCategory !== 'gear'
+            a => a._mainCategory !== 'gear'                                    // ← only clears gear
           )
           return {
             equippedAssets: {
@@ -345,12 +348,11 @@ export const useConfiguratorStore = create((set, get) => ({
         }
 
         if (isArmArmor) {
-          // Switching armor class invalidates any equipped weapon-arm on this arm,
-          // because the weapon-arm bakes in the previous armor class mesh.
-          // Clear: previous arm armor (clothing) and any weapon-arm (gear).
-          // Keep: accessories on other categories.
+          // Arm armor layers on top of base arm or weapon-arm.
+          // Clear: previous arm armor (clothing) only.
+          // Keep: weapon-arm (gear) + accessories — weapon stays equipped.
           const keepItems = currentEquipped.filter(
-            a => a._mainCategory !== 'clothing' && a._mainCategory !== 'gear'
+            a => a._mainCategory !== 'clothing'                                // ← only clears clothing
           )
           return {
             equippedAssets: {
