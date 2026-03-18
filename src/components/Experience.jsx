@@ -63,7 +63,7 @@ export const Experience = () => {
         minAzimuthAngle={-Math.PI}
         maxAzimuthAngle={Math.PI}
       />
-      <Environment preset="sunset" environmentIntensity={0.8} />
+      <Environment preset="sunset" environmentIntensity={0.35} />
         
       {/* Key Light */}
       <directionalLight
@@ -75,8 +75,8 @@ export const Experience = () => {
         shadow-bias={-0.0001}
       />
 
-      <directionalLight position={[1, 0.1, -5]} intensity={0.1} color={"red"} />
-      <directionalLight position={[-1, 0.1, -5]} intensity={0.1} color={"blue"} />
+      <directionalLight position={[1, 0.1, -5]} intensity={0.2} color={"red"} />
+      <directionalLight position={[-1, 0.1, -5]} intensity={4} color={"#001a33"} />
 
       {/* Avatar with adjustable scale */}
       

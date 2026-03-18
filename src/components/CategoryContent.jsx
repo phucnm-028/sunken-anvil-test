@@ -35,7 +35,7 @@ const ProfileThumb = ({ profile, isMale, isSelected, onSelect }) => {
           <img
             src={profile.thumbnail_url}
             alt={profile.display_name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-top"
           />
           {/* Gender badge overlay — only when thumbnail present */}
           <span className={`absolute top-1 right-1 text-sm font-bold ${genderColor} drop-shadow`}>
@@ -98,7 +98,7 @@ export const SpeciesSelector = () => {
   }
  
   return (
-    <div className="rounded-2xl bg-white drop-shadow-md p-4 flex flex-col gap-2">
+    <div className="rounded-2xl bg-[#a09888] drop-shadow-md p-4 flex flex-col gap-2">
       {species.map((sp) => {
         const entry         = profileMap[sp.id]
         const maleProfile   = entry?.male   ?? null

@@ -19,7 +19,7 @@ const MainCategoryNav = () => {
     useConfiguratorStore()
 
   return (
-    <div className="rounded-2xl bg-white drop-shadow-md p-4">
+    <div className="rounded-2xl bg-[#a09888] drop-shadow-md p-4">
       <div className="flex flex-col gap-2 pointer-events-auto">
         {mainCategories.map((category) => {
           const isActive        = currentMainCategory === category
