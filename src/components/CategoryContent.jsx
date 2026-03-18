@@ -16,7 +16,7 @@ const ProfileThumb = ({ profile, isMale, isSelected, onSelect }) => {
  
   if (!profile) {
     // Empty placeholder — keeps the grid aligned when one gender has no profile
-    return <div className="w-full aspect-square rounded-md bg-gray-50 border-2 border-transparent" />
+    return <div className="w-full aspect-square rounded-md bg-[#ede8de] border-2 border-transparent" />
   }
  
   return (
@@ -154,7 +154,7 @@ export const PoseSelector = () => {
   }
 
   return (
-    <div className="rounded-2xl bg-white drop-shadow-md p-6 gap-6 flex flex-col max-w-2xl">
+    <div className="rounded-2xl bg-[#ede8de] drop-shadow-md p-6 gap-6 flex flex-col max-w-2xl">
       <h3 className="font-medium text-gray-700">Select Pose</h3>
 
       <div className="flex gap-2 flex-wrap">
@@ -334,7 +334,7 @@ const SlotWithAssets = ({ slot }) => {
   }
 
   return (
-    <div className="rounded-2xl bg-white drop-shadow-md p-6 gap-4 flex flex-col max-w-3xl">
+    <div className="rounded-2xl bg-[#a09888] drop-shadow-md p-6 gap-4 flex flex-col max-w-3xl">
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-medium text-gray-700">{slot.display_name}</h4>
         <span className="text-xs text-gray-500">
