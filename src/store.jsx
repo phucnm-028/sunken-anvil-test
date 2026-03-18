@@ -43,7 +43,8 @@ export const useConfiguratorStore = create((set, get) => ({
   
   assetSlots: [],                      // Sub-categories for current main category
   currentSlot: null,                   // Which sub-category/slot is selected
-  
+  mobileDrawerOpen: false,            // Whether the mobile category drawer is open (camera zoom trigger)
+  setMobileDrawerOpen: (open) => set({ mobileDrawerOpen: open }),
   // ==========================================================================
   // STATE - Assets & Equipment
   // ==========================================================================

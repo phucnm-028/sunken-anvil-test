@@ -190,8 +190,9 @@ const MobileDrawer = ({ isOpen, onClose }) => {
 // ============================================================================
 
 export const UI = () => {
-  const { error, isLoading, clearError, selectMainCategory } = useConfiguratorStore()
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
+  // const { error, isLoading, clearError, selectMainCategory } = useConfiguratorStore()
+  // const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
+  const { error, isLoading, clearError, selectMainCategory, mobileDrawerOpen, setMobileDrawerOpen } = useConfiguratorStore()
 
   const handleMobileCategorySelect = async (category) => {
     await selectMainCategory(category)
