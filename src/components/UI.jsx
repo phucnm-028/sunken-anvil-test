@@ -8,6 +8,7 @@ import {
 } from "./CategoryContent"
 
 
+const CATEGORY_LABELS = { species: "Race" }
 
 // ============================================================================
 // MAIN CATEGORY NAVIGATION  (desktop sidebar — unchanged)
@@ -38,7 +39,7 @@ const MainCategoryNav = () => {
                   : "text-gray-700 hover:bg-gray-100"
               }`}
             >
-              {category}
+              {CATEGORY_LABELS[category] ?? category}
             </button>
           )
         })}
@@ -115,7 +116,7 @@ const MobileBottomBar = ({ onCategorySelect }) => {
                 : "text-gray-600 active:bg-gray-50"
             }`}
           >
-            {category}
+            {CATEGORY_LABELS[category] ?? category}
           </button>
         )
       })}
@@ -190,9 +191,8 @@ const MobileDrawer = ({ isOpen, onClose }) => {
 // ============================================================================
 
 export const UI = () => {
-  // const { error, isLoading, clearError, selectMainCategory } = useConfiguratorStore()
-  // const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
-  const { error, isLoading, clearError, selectMainCategory, mobileDrawerOpen, setMobileDrawerOpen } = useConfiguratorStore()
+  const { error, isLoading, clearError, selectMainCategory } = useConfiguratorStore()
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
 
   const handleMobileCategorySelect = async (category) => {
     await selectMainCategory(category)
