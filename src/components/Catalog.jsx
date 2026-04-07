@@ -290,6 +290,7 @@ export async function getCompatibleAssets(slotId, profileDetails, armorClassId =
       .eq('is_published', true)
       .eq('rig_class', profileDetails.rig_class)
       .eq('thickness', profileDetails.thickness)
+      .or(`male.is.null,male.eq.${profileDetails.male}`)
 
       console.log(['getCompatibleAssets'], { 'slotId': slotId, 'armorClassId': armorClassId, 'legsSpeciesId': legsSpeciesId, 'rigClass': profileDetails.rig_class, 'thickness': profileDetails.thickness, 'speciesId': profileDetails.species_id })
     // Legs equipment: filter by what base legs the user has equipped
